@@ -5,11 +5,13 @@
 # documentation
 
 # http://www.ietf.org/rfc/rfc2426.txt
-import vobject
-from getopt import gnu_getopt as getopt
-import sys, os, re
+import vobject, sys, os, re
+from getopt import gnu_getopt
 
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 import logging
 logger = logging.getLogger("vobject.base")
@@ -18,7 +20,7 @@ language, output_encoding = locale.getdefaultlocale()
 
 def main(argv):
     vcard_dir = None
-    opts, args = getopt(argv, "d:", ["vcard-dir="])
+    opts, args = gnu_getopt(argv, "d:", ["vcard-dir="])
     for opt, val in opts:
         if opt == "-d" or opt == "--vcard-dir":
             vcard_dir = val
@@ -50,7 +52,8 @@ def main(argv):
 
 class VcardCache(object):
     def __init__(self, vcard_dir):
-        self.pickle_path = os.path.expanduser("~/.cache/vcard_query")
+        self.cache_dir = os.path.expanduser("~/.cache/")
+        self.pickle_path = os.path.join(self.cache_dir, "vcard_query")
         self.vcard_dir = vcard_dir
         self.last_vcard_dir_timestamp, self.vcards = self._load()
         self._update()
@@ -73,6 +76,8 @@ class VcardCache(object):
 
     def _serialize(self):
         try:
+            if not os.path.isdir(self.cache_dir):
+                os.mkdir(self.cache_dir)
             with open(self.pickle_path, "w") as f:
                 pickle.dump((self.last_vcard_dir_timestamp, self.vcards), f)
         except IOError:

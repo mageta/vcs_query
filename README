@@ -1,3 +1,7 @@
-
 This scripts parses all vcards in the directory given with -d
 and prints them in a format that is usable as $query-command in mutt.
+
+The first non-option argument is interpreted as a pattern to filter the
+resulting lines.
+
+As parsing can take some time, the results are cached in ~/.cache/vcs_query.
