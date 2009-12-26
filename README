@@ -1,0 +1,3 @@
+
+This scripts parses all vcards in the directory given with -d
+and prints them in a format that is usable as $query-command in mutt.
