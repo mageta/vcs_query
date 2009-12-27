@@ -31,17 +31,15 @@ def main(argv):
         pattern = re.compile(args[0].strip())
 
     if vcard_dir is None:
-        print >> sys.stderr, "please specify a directory with vcards"
-        sys.exit(1)
+        sys.exit("please specify a directory with vcards")
 
     if not os.path.isdir(vcard_dir):
-        print >> sys.stderr, "please specify a directory with vcards"
-        sys.exit(1)
+        sys.exit("please specify a directory with vcards")
 
     print "first line is ignored"
 
     cache = VcardCache(vcard_dir)
-    entries = cache.vcards.values()
+    entries = cache.get_entries()
     entries.sort(key=str)
 
     for vcard in entries:
@@ -82,6 +80,9 @@ class VcardCache(object):
                 pickle.dump((self.last_vcard_dir_timestamp, self.vcards), f)
         except IOError:
             print "cannot write to cache file " + cache
+
+    def get_entries(self):
+        return self.vcards.values()
 
 
 class Vcard(object):
