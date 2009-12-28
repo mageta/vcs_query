@@ -53,7 +53,7 @@ class VcardCache(object):
         self.cache_dir = os.path.expanduser("~/.cache/")
         self.pickle_path = os.path.join(self.cache_dir, "vcard_query")
         self.vcard_dir = vcard_dir
-        self.last_vcard_dir_timestamp, self.vcards = self._load()
+        self.last_vcard_dir_timestamp, self.vcard_files = self._load()
         self._update()
         self._serialize()
 
@@ -69,32 +69,27 @@ class VcardCache(object):
             paths = os.listdir(self.vcard_dir)
             paths = [ os.path.join(self.vcard_dir, p) for p in paths ]
             for path in paths:
-                if not self.vcards.has_key(path) or self.vcards[path].needs_update():
-                    self.vcards[path] = Vcard(path)
+                if not self.vcard_files.has_key(path) or self.vcard_files[path].needs_update():
+                    self.vcard_files[path] = VcardFile(path)
+        self.vcards = []
+        for vcard_file in self.vcard_files.values():
+            self.vcards.extend(vcard_file.vcards)
 
     def _serialize(self):
         try:
             if not os.path.isdir(self.cache_dir):
                 os.mkdir(self.cache_dir)
             with open(self.pickle_path, "w") as f:
-                pickle.dump((self.last_vcard_dir_timestamp, self.vcards), f)
+                pickle.dump((self.last_vcard_dir_timestamp, self.vcard_files), f)
         except IOError:
             print "cannot write to cache file " + cache
 
     def get_entries(self):
-        return self.vcards.values()
-
+        return self.vcards
 
 class Vcard(object):
-    def __init__(self, path):
-        self.path = path
-        self.timestamp = get_timestamp(path)
-        with open(path) as f:
-            vcs_string = f.read()
-
-        component = self._read_component(vcs_string)
+    def __init__(self, component):
         data = component.contents["vcard"][0]
-
         self.name = ""
         self.mail = ""
         if data.contents.has_key("fn"):
@@ -104,22 +99,29 @@ class Vcard(object):
 
         self.description = "" # TODO?
 
-    def _read_component(self, vcs_string):
-        # vobject cannot parse lines containing a space and issues a warning
-        # zimbra produces these lines
-        # watch https://bugzilla.zimbra.com/show_bug.cgi?id=43702
+    def __str__(self):
+        return self.mail.encode(output_encoding) +\
+                "\t" + self.name.encode(output_encoding)\
+                + "\t" + self.description
+
+class VcardFile(object):
+    def __init__(self, path):
+        self.path = path
+        self.timestamp = get_timestamp(path)
+        self._read_components(path)
+
+    def _read_components(self, path):
         logger.setLevel(logging.FATAL)
-        component = vobject.readOne(vcs_string, ignoreUnreadable=True)
+        with open(path) as f:
+            components = vobject.readComponents(f, ignoreUnreadable=True)
+            self.vcards = [ Vcard(component) for component in components ]
         logger.setLevel(logging.ERROR)
-        return component
 
     def needs_update(self):
         return get_timestamp(self.path) > self.timestamp
 
     def __str__(self):
-        return self.mail.encode(output_encoding) +\
-                "\t" + self.name.encode(output_encoding)\
-                + "\t" + self.description
+        result = "\n".join(self.vcards)
 
 def get_timestamp(path):
     return os.stat(path).st_mtime 
