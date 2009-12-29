@@ -4,4 +4,8 @@ and prints them in a format that is usable as $query-command in mutt.
 The first non-option argument is interpreted as a pattern to filter the
 resulting lines.
 
+To use it instead of the aliases defined in your .muttrc, use:
+set query_command="vcs_query.py -d ~/.maildir/zimbra/Contacts/cur/ %s"
+bind    editor  "\t"       complete-query
+
 As parsing can take some time, the results are cached in ~/.cache/vcs_query.

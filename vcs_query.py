@@ -14,21 +14,27 @@ except:
     import pickle
 
 import logging
-logger = logging.getLogger("vobject.base")
+vobject_logger = logging.getLogger("vobject.base")
+logger = logging.getLogger(__name__)
 import locale
 language, output_encoding = locale.getdefaultlocale()
 
 def main(argv):
+    """
+    usage: $0 [<options>] [<substr>]
+    only those lines that contain <substr> will be displayed
+    options:
+    -d --vcard-dir=         specify directory with vcards
+    -s --starting-matches   display lines which start with <substr> first
+    """
     vcard_dir = None
-    opts, args = gnu_getopt(argv, "d:", ["vcard-dir="])
+    starting_matches = False
+    opts, args = gnu_getopt(argv, "d:s", ["vcard-dir=","starting-matches"])
     for opt, val in opts:
         if opt == "-d" or opt == "--vcard-dir":
             vcard_dir = val
-
-    if len(args) < 1:
-        pattern = re.compile(".*", re.I)
-    else:
-        pattern = re.compile(args[0].strip())
+        if opt == "-s" or opt == "--starting-matches":
+            starting_matches = True
 
     if vcard_dir is None:
         sys.exit("please specify a directory with vcards")
@@ -36,18 +42,40 @@ def main(argv):
     if not os.path.isdir(vcard_dir):
         sys.exit("please specify a directory with vcards")
 
-    print "first line is ignored"
+    pattern = None
+    if len(args) > 0:
+        pattern = args[0].strip().lower() #re.compile(args[0].strip(), re.I)
+
+    print "vcs_query.py, see http://github.com/marvinthepa/vcs_query"
 
     cache = VcardCache(vcard_dir)
     entries = cache.get_entries()
     entries.sort(key=str)
-
+    if starting_matches and pattern:
+        sortfunc = get_sortfunc(pattern)
+        entries.sort(cmp=sortfunc, key=str)
+    
     for vcard in entries:
         if len(vcard.mail) > 0:
             repr = str(vcard)
-            if pattern.search(repr):
+            if not pattern or pattern in repr.lower(): #.search(repr):
                 print repr
 
+def get_sortfunc(pattern):
+    def sortfunc(a,b):
+        if a.lower().startswith(pattern):
+            if b.lower().startswith(pattern):
+                return 0
+            else:
+                return -1
+        else:
+            if b.lower().startswith(pattern):
+                return 1
+            else:
+                return 0
+
+    return sortfunc
+        
 class VcardCache(object):
     def __init__(self, vcard_dir):
         self.cache_dir = os.path.expanduser("~/.cache/")
@@ -68,6 +96,10 @@ class VcardCache(object):
         if get_timestamp(self.vcard_dir) > self.last_vcard_dir_timestamp:
             paths = os.listdir(self.vcard_dir)
             paths = [ os.path.join(self.vcard_dir, p) for p in paths ]
+            paths = [ p for p in paths if os.path.isfile(p) ]
+            for key in self.vcard_files.keys():
+                if key not in paths:
+                    del self.vcard_files[key]
             for path in paths:
                 if not self.vcard_files.has_key(path) or self.vcard_files[path].needs_update():
                     self.vcard_files[path] = VcardFile(path)
@@ -89,13 +121,12 @@ class VcardCache(object):
 
 class Vcard(object):
     def __init__(self, component):
-        data = component.contents["vcard"][0]
         self.name = ""
         self.mail = ""
-        if data.contents.has_key("fn"):
-            self.name = data.contents["fn"][0].value
-        if data.contents.has_key("email"):
-            self.mail = data.contents["email"][0].value.lower()
+        if component.contents.has_key("fn"):
+            self.name = component.fn.value
+        if component.contents.has_key("email"):
+            self.mail = component.email.value
 
         self.description = "" # TODO?
 
@@ -111,11 +142,22 @@ class VcardFile(object):
         self._read_components(path)
 
     def _read_components(self, path):
-        logger.setLevel(logging.FATAL)
+        vobject_logger.setLevel(logging.FATAL)
         with open(path) as f:
             components = vobject.readComponents(f, ignoreUnreadable=True)
-            self.vcards = [ Vcard(component) for component in components ]
-        logger.setLevel(logging.ERROR)
+            self.vcards = []
+            for component in components:
+                if component.name.lower() == u'vcard':
+                    self.vcards.append( Vcard(component) )
+                # hack to parse full emails for contained vcards:
+                elif component.contents.has_key("vcard"):
+                    self.vcards.append( Vcard(component.vcard) )
+                else:
+                    logger.warning("no vcard in component: "
+                            + component.name.encode(output_encoding)
+                            + "from file " + path )
+
+        vobject_logger.setLevel(logging.ERROR)
 
     def needs_update(self):
         return get_timestamp(self.path) > self.timestamp
