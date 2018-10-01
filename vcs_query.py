@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
 # TODO
@@ -6,18 +6,13 @@
 
 # http://www.ietf.org/rfc/rfc2426.txt
 import vobject, sys, os, re
+import functools
+import pickle
 from getopt import gnu_getopt
-
-try:
-    import cPickle as pickle
-except:
-    import pickle
 
 import logging
 vobject_logger = logging.getLogger("vobject.base")
 logger = logging.getLogger(__name__)
-import locale
-language, output_encoding = locale.getdefaultlocale()
 
 def main(argv):
     """
@@ -46,30 +41,31 @@ def main(argv):
     if len(args) > 0:
         pattern = args[0].strip().lower() #re.compile(args[0].strip(), re.I)
 
-    print "vcs_query.py, see http://github.com/marvinthepa/vcs_query"
+    print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
 
     cache = VcardCache(vcard_dir)
     entries = cache.get_entries()
     entries.sort(key=str)
     if starting_matches and pattern:
         sortfunc = get_sortfunc(pattern)
-        entries.sort(cmp=sortfunc, key=str)
+        keyfunc = functools.cmp_to_key(sortfunc)
+        entries.sort(key=keyfunc)
 
     for vcard in entries:
         if len(vcard.mail) > 0:
             repr = str(vcard)
             if not pattern or pattern in repr.lower(): #.search(repr):
-                print repr
+                print(repr)
 
 def get_sortfunc(pattern):
     def sortfunc(a,b):
-        if a.lower().startswith(pattern):
-            if b.lower().startswith(pattern):
+        if str(a).lower().startswith(pattern):
+            if str(b).lower().startswith(pattern):
                 return 0
             else:
                 return -1
         else:
-            if b.lower().startswith(pattern):
+            if str(b).lower().startswith(pattern):
                 return 1
             else:
                 return 0
@@ -87,7 +83,7 @@ class VcardCache(object):
 
     def _load(self):
         if os.path.isfile(self.pickle_path):
-            with open(self.pickle_path, "r") as f:
+            with open(self.pickle_path, "rb") as f:
                 return pickle.load(f)
         else:
             return 0, {}
@@ -101,7 +97,7 @@ class VcardCache(object):
                 if key not in paths:
                     del self.vcard_files[key]
             for path in paths:
-                if not self.vcard_files.has_key(path) or self.vcard_files[path].needs_update():
+                if path not in self.vcard_files or self.vcard_files[path].needs_update():
                     self.vcard_files[path] = VcardFile(path)
         self.vcards = []
         for vcard_file in self.vcard_files.values():
@@ -111,10 +107,10 @@ class VcardCache(object):
         try:
             if not os.path.isdir(self.cache_dir):
                 os.mkdir(self.cache_dir)
-            with open(self.pickle_path, "w") as f:
+            with open(self.pickle_path, "wb") as f:
                 pickle.dump((self.last_vcard_dir_timestamp, self.vcard_files), f)
         except IOError:
-            print "cannot write to cache file " + cache
+            print("cannot write to cache file {!s}".format(self.pickle_path))
 
     def get_entries(self):
         return self.vcards
@@ -123,17 +119,15 @@ class Vcard(object):
     def __init__(self, component):
         self.name = ""
         self.mail = ""
-        if component.contents.has_key("fn"):
+        if "fn" in component.contents:
             self.name = component.fn.value
-        if component.contents.has_key("email"):
+        if "email" in component.contents:
             self.mail = component.email.value
 
         self.description = "" # TODO?
 
     def __str__(self):
-        return self.mail.encode(output_encoding) +\
-                "\t" + self.name.encode(output_encoding)\
-                + "\t" + self.description
+        return "{!s}\t{!s}\t{!s}".format(self.mail, self.name, self.description)
 
 class VcardFile(object):
     def __init__(self, path):
@@ -143,19 +137,19 @@ class VcardFile(object):
 
     def _read_components(self, path):
         vobject_logger.setLevel(logging.FATAL)
-        with open(path) as f:
+        # FIXME: can we at least guess what charset the file has?
+        with open(path, encoding="utf-8") as f:
             components = vobject.readComponents(f, ignoreUnreadable=True)
             self.vcards = []
             for component in components:
-                if component.name.lower() == u'vcard':
+                if component.name.lower() == "vcard":
                     self.vcards.append( Vcard(component) )
                 # hack to parse full emails for contained vcards:
-                elif component.contents.has_key("vcard"):
+                elif "vcard" in component.contents:
                     self.vcards.append( Vcard(component.vcard) )
                 else:
-                    logger.warning("no vcard in component: "
-                            + component.name.encode(output_encoding)
-                            + "from file " + path )
+                    logger.warning("no vcard in component: %s from file %s",
+                                   component.name, path)
 
         vobject_logger.setLevel(logging.ERROR)
 
