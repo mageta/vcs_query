@@ -32,6 +32,9 @@ def main(argv):
     optparser.add_argument("-s", "--starting-matches",
                            required=False, action="store_true",
                            help="display lines which start with PATTERN first")
+    optparser.add_argument("-a", "--all-addresses",
+                           required=False, action="store_true",
+                           help="display all addresses stored for a contact")
     args = optparser.parse_args(argv[1:])
 
     if not os.path.isdir(args.vcard_dir):
@@ -52,10 +55,14 @@ def main(argv):
         entries.sort(key=keyfunc)
 
     for vcard in entries:
-        if len(vcard.mail) > 0:
-            repr = str(vcard)
-            if not pattern or pattern in repr.lower():
-                print(repr)
+        if vcard:
+            if args.all_addresses:
+                contact_data = str(vcard)
+            else:
+                contact_data = vcard[0]
+
+            if not pattern or pattern in contact_data.lower():
+                print(contact_data)
 
 def get_sortfunc(pattern):
     def sortfunc(a,b):
@@ -118,16 +125,23 @@ class VcardCache(object):
 class Vcard(object):
     def __init__(self, component):
         self.name = ""
-        self.mail = ""
+        self.mails = ""
         if "fn" in component.contents:
             self.name = component.fn.value
         if "email" in component.contents:
-            self.mail = component.email.value
+            self.mails = [mail.value for mail in component.contents["email"]]
 
         self.description = "" # TODO?
 
+    def __getitem__(self, i):
+        mail = self.mails[i]
+        return "{!s}\t{!s}\t{!s}".format(mail, self.name, self.description)
+
+    def __len__(self):
+        return len(self.mails)
+
     def __str__(self):
-        return "{!s}\t{!s}\t{!s}".format(self.mail, self.name, self.description)
+        return "\n".join(self)
 
 class VcardFile(object):
     def __init__(self, path):
