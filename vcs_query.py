@@ -163,7 +163,7 @@ class VcardFile(object):
         return get_timestamp(self.path) > self.timestamp
 
     def __str__(self):
-        result = "\n".join(self.vcards)
+        return "\n".join(self.vcards)
 
 def get_timestamp(path):
     return os.stat(path).st_mtime
