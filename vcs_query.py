@@ -8,6 +8,7 @@
 import vobject, sys, os
 import functools
 import argparse
+import hashlib
 
 try:
     import cPickle as pickle
@@ -82,7 +83,12 @@ def get_sortfunc(pattern):
 class VcardCache(object):
     def __init__(self, vcard_dir):
         self.cache_dir = os.path.expanduser("~/.cache/")
-        self.pickle_path = os.path.join(self.cache_dir, "vcard_query")
+
+        dhsh = hashlib.sha256()
+        dhsh.update(vcard_dir.encode())
+        self.pickle_path = os.path.join(self.cache_dir,
+                                        "{}.vcs_query".format(dhsh.hexdigest()))
+
         self.vcard_dir = vcard_dir
         self.last_vcard_dir_timestamp, self.vcard_files = self._load()
         self._update()
