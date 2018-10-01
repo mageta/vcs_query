@@ -5,7 +5,7 @@
 # documentation
 
 # http://www.ietf.org/rfc/rfc2426.txt
-import vobject, sys, os, re
+import vobject, sys, os
 import functools
 import pickle
 from getopt import gnu_getopt
@@ -39,7 +39,7 @@ def main(argv):
 
     pattern = None
     if len(args) > 0:
-        pattern = args[0].strip().lower() #re.compile(args[0].strip(), re.I)
+        pattern = args[0].strip().lower()
 
     print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
 
@@ -54,7 +54,7 @@ def main(argv):
     for vcard in entries:
         if len(vcard.mail) > 0:
             repr = str(vcard)
-            if not pattern or pattern in repr.lower(): #.search(repr):
+            if not pattern or pattern in repr.lower():
                 print(repr)
 
 def get_sortfunc(pattern):
