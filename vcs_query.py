@@ -28,8 +28,9 @@ def main(argv):
                            help="only those lines that contain PATTERN will be"
                                 "displayed")
     optparser.add_argument("-d", "--vcard-dir",
-                           required=True,
-                           help="specify directory with vcards")
+                           required=True, action='append',
+                           help="specify directory containing VCards (can be "
+                                "given multiple times)")
     optparser.add_argument("-s", "--starting-matches",
                            required=False, action="store_true",
                            help="display lines which start with PATTERN first")
@@ -38,8 +39,9 @@ def main(argv):
                            help="display all addresses stored for a contact")
     args = optparser.parse_args(argv[1:])
 
-    if not os.path.isdir(args.vcard_dir):
-        sys.exit("please specify a directory with vcards")
+    for vcdir in args.vcard_dir:
+        if not os.path.isdir(vcdir):
+            optparser.error("'{}' is not a directory".format(vcdir))
 
     pattern = args.pattern
     if pattern:
@@ -47,15 +49,19 @@ def main(argv):
 
     print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
 
-    cache = VcardCache(args.vcard_dir)
-    entries = cache.get_entries()
-    entries.sort(key=(lambda x: str(x).lower()))
-    if args.starting_matches and pattern:
-        sortfunc = get_sortfunc(pattern)
-        keyfunc = functools.cmp_to_key(sortfunc)
-        entries.sort(key=keyfunc)
+    vcards = []
+    for vcdir in args.vcard_dir:
+        cache = VcardCache(vcdir)
 
-    for vcard in entries:
+        vcards += cache.get_entries()
+        vcards.sort(key=(lambda x: str(x).lower()))
+
+        if args.starting_matches and pattern:
+            sortfunc = get_sortfunc(pattern)
+            keyfunc = functools.cmp_to_key(sortfunc)
+            vcards.sort(key=keyfunc)
+
+    for vcard in vcards:
         if vcard:
             if args.all_addresses:
                 contact_data = str(vcard)
