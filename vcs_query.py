@@ -41,7 +41,7 @@ def main(argv):
 
     cache = VcardCache(args.vcard_dir)
     entries = cache.get_entries()
-    entries.sort(key=str)
+    entries.sort(key=(lambda x: str(x).lower()))
     if args.starting_matches and pattern:
         sortfunc = get_sortfunc(pattern)
         keyfunc = functools.cmp_to_key(sortfunc)
