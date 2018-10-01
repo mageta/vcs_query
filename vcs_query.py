@@ -7,46 +7,42 @@
 # http://www.ietf.org/rfc/rfc2426.txt
 import vobject, sys, os
 import functools
+import argparse
 import pickle
-from getopt import gnu_getopt
 
 import logging
 vobject_logger = logging.getLogger("vobject.base")
 logger = logging.getLogger(__name__)
 
 def main(argv):
-    """
-    usage: $0 [<options>] [<substr>]
-    only those lines that contain <substr> will be displayed
-    options:
-    -d --vcard-dir=         specify directory with vcards
-    -s --starting-matches   display lines which start with <substr> first
-    """
-    vcard_dir = None
-    starting_matches = False
-    opts, args = gnu_getopt(argv, "d:s", ["vcard-dir=","starting-matches"])
-    for opt, val in opts:
-        if opt == "-d" or opt == "--vcard-dir":
-            vcard_dir = val
-        if opt == "-s" or opt == "--starting-matches":
-            starting_matches = True
+    optparser = argparse.ArgumentParser(prog=argv[0],
+                                        description="Query VCard Files for "
+                                                    "EMail Addresses")
+    optparser.add_argument("pattern", metavar="PATTERN",
+                           nargs='?', default=None,
+                           help="only those lines that contain PATTERN will be"
+                                "displayed")
+    optparser.add_argument("-d", "--vcard-dir",
+                           required=True,
+                           help="specify directory with vcards")
+    optparser.add_argument("-s", "--starting-matches",
+                           required=False, action="store_true",
+                           help="display lines which start with PATTERN first")
+    args = optparser.parse_args(argv[1:])
 
-    if vcard_dir is None:
+    if not os.path.isdir(args.vcard_dir):
         sys.exit("please specify a directory with vcards")
 
-    if not os.path.isdir(vcard_dir):
-        sys.exit("please specify a directory with vcards")
-
-    pattern = None
-    if len(args) > 0:
-        pattern = args[0].strip().lower()
+    pattern = args.pattern
+    if pattern:
+        pattern = pattern.strip().lower()
 
     print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
 
-    cache = VcardCache(vcard_dir)
+    cache = VcardCache(args.vcard_dir)
     entries = cache.get_entries()
     entries.sort(key=str)
-    if starting_matches and pattern:
+    if args.starting_matches and pattern:
         sortfunc = get_sortfunc(pattern)
         keyfunc = functools.cmp_to_key(sortfunc)
         entries.sort(key=keyfunc)
@@ -163,4 +159,4 @@ def get_timestamp(path):
     return os.stat(path).st_mtime
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main(sys.argv)
