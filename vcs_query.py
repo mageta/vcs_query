@@ -54,7 +54,7 @@ def main(argv):
     if starting_matches and pattern:
         sortfunc = get_sortfunc(pattern)
         entries.sort(cmp=sortfunc, key=str)
-    
+
     for vcard in entries:
         if len(vcard.mail) > 0:
             repr = str(vcard)
@@ -75,7 +75,7 @@ def get_sortfunc(pattern):
                 return 0
 
     return sortfunc
-        
+
 class VcardCache(object):
     def __init__(self, vcard_dir):
         self.cache_dir = os.path.expanduser("~/.cache/")
@@ -166,7 +166,7 @@ class VcardFile(object):
         result = "\n".join(self.vcards)
 
 def get_timestamp(path):
-    return os.stat(path).st_mtime 
+    return os.stat(path).st_mtime
 
 if __name__ == "__main__":
     main(sys.argv[1:])
