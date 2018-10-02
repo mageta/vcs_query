@@ -11,6 +11,7 @@ import functools
 import argparse
 import hashlib
 import pickle
+import re
 
 import logging
 vobject_logger = logging.getLogger("vobject.base")
@@ -39,15 +40,22 @@ def main(argv):
                            help="sort the result according to the contact name "
                                 "(the default is to sort according to mail-"
                                 "address first)")
+    optparser.add_argument("-r", "--regex",
+                           required=False, action="store_true",
+                           help="interpret PATTERN as regular expression "
+                                "(syntax: https://docs.python.org/3/library/"
+                                "re.html#regular-expression-syntax)")
     args = optparser.parse_args(argv[1:])
 
     for vcdir in args.vcard_dir:
         if not os.path.isdir(vcdir):
             optparser.error("'{}' is not a directory".format(vcdir))
 
-    pattern = args.pattern
-    if pattern:
-        pattern = pattern.strip().lower()
+    try:
+        pattern = Pattern(args.pattern, args.regex)
+    except re.error as error:
+        optparser.error("Given PATTERN is not a valid regular "
+                        "expression: {!s}".format(error))
 
     print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
 
@@ -86,23 +94,59 @@ def main(argv):
     for contact in contacts:
         contact_formatted = contact_format(contact)
 
-        if not pattern or pattern in contact_formatted.lower():
+        if pattern.search(contact_formatted):
             print(contact_formatted)
 
 def get_sortfunc(pattern, fmt):
     def sortfunc(a,b):
-        if fmt(a).lower().startswith(pattern):
-            if fmt(b).lower().startswith(pattern):
+        if pattern.match(fmt(a)):
+            if pattern.match(fmt(b)):
                 return 0
             else:
                 return -1
         else:
-            if fmt(b).lower().startswith(pattern):
+            if pattern.match(fmt(b)):
                 return 1
             else:
                 return 0
 
     return sortfunc
+
+class Pattern(object):
+    def __init__(self, pattern, is_regex):
+        self.match_all = False if pattern else True
+        self.is_regex = is_regex
+
+        if not self.match_all:
+            if self.is_regex:
+                self.pattern = re.compile(pattern, re.IGNORECASE)
+            else:
+                self.pattern = pattern.lower()
+
+    def __bool__(self):
+        return self.match_all
+
+    def search(self, string):
+        if self.match_all:
+            return True
+
+        if self.is_regex and self.pattern.search(string):
+            return True
+        elif not self.is_regex and self.pattern in string.lower():
+            return True
+
+        return False
+
+    def match(self, string):
+        if self.match_all:
+            return True
+
+        if self.is_regex and self.pattern.match(string):
+            return True
+        elif not self.is_regex and string.lower().startswith(self.pattern):
+            return True
+
+        return False
 
 class VcardCache(object):
     def __init__(self, vcard_dir):
