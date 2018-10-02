@@ -6,6 +6,7 @@
 
 # http://www.ietf.org/rfc/rfc2426.txt
 import vobject, sys, os
+import collections
 import functools
 import argparse
 import hashlib
@@ -45,37 +46,47 @@ def main(argv):
 
     print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
 
-    vcards = []
+    # Load all contacts from the given VCard-Directories; duplicates are
+    # automatically handled by using a set
+    contacts_uniq = set()
     for vcdir in args.vcard_dir:
         cache = VcardCache(vcdir)
+        vcards = cache.get_entries()
 
-        vcards += cache.get_entries()
-        vcards.sort(key=(lambda x: str(x).lower()))
+        for vcard in vcards:
+            if vcard:
+                if args.all_addresses:
+                    contacts_uniq.update(vcard)
+                else:
+                    contacts_uniq.add(vcard[0])
 
-        if args.starting_matches and pattern:
-            sortfunc = get_sortfunc(pattern)
-            keyfunc = functools.cmp_to_key(sortfunc)
-            vcards.sort(key=keyfunc)
+    contact_format = (lambda x: "{}\t{}\t{}".format(x.mail, x.name,
+                                                    x.description))
 
-    for vcard in vcards:
-        if vcard:
-            if args.all_addresses:
-                contact_data = str(vcard)
-            else:
-                contact_data = vcard[0]
+    # Convert set into list, so we can do the sorting
+    contacts = list(sorted(contacts_uniq,
+                           key=(lambda x: contact_format(x).lower())))
 
-            if not pattern or pattern in contact_data.lower():
-                print(contact_data)
+    if args.starting_matches and pattern:
+        sortfunc = get_sortfunc(pattern, contact_format)
+        keyfunc = functools.cmp_to_key(sortfunc)
+        contacts.sort(key=keyfunc)
 
-def get_sortfunc(pattern):
+    for contact in contacts:
+        contact_formatted = contact_format(contact)
+
+        if not pattern or pattern in contact_formatted.lower():
+            print(contact_formatted)
+
+def get_sortfunc(pattern, fmt):
     def sortfunc(a,b):
-        if str(a).lower().startswith(pattern):
-            if str(b).lower().startswith(pattern):
+        if fmt(a).lower().startswith(pattern):
+            if fmt(b).lower().startswith(pattern):
                 return 0
             else:
                 return -1
         else:
-            if str(b).lower().startswith(pattern):
+            if fmt(b).lower().startswith(pattern):
                 return 1
             else:
                 return 0
@@ -131,6 +142,8 @@ class VcardCache(object):
         return self.vcards
 
 class Vcard(object):
+    Contact = collections.namedtuple("Contact", ["mail", "name", "description"])
+
     def __init__(self, component):
         self.name = ""
         self.mails = []
@@ -141,9 +154,15 @@ class Vcard(object):
 
         self.description = "" # TODO?
 
+    def _get_mail_contact(self, mail):
+        return Vcard.Contact(str(mail), str(self.name), str(self.description))
+
     def __getitem__(self, i):
-        mail = self.mails[i]
-        return "{!s}\t{!s}\t{!s}".format(mail, self.name, self.description)
+        return self._get_mail_contact(self.mails[i])
+
+    def __iter__(self):
+        for mail in self.mails:
+            yield self._get_mail_contact(mail)
 
     def __len__(self):
         return len(self.mails)
