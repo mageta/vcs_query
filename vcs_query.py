@@ -38,6 +38,11 @@ def main(argv):
     optparser.add_argument("-a", "--all-addresses",
                            required=False, action="store_true",
                            help="display all addresses stored for a contact")
+    optparser.add_argument("-n", "--sort-names",
+                           required=False, action="store_true",
+                           help="sort the result according to the contact name "
+                                "(the default is to sort according to mail-"
+                                "address first)")
     args = optparser.parse_args(argv[1:])
 
     for vcdir in args.vcard_dir:
@@ -68,8 +73,14 @@ def main(argv):
                                                     x.description))
 
     # Convert set into list, so we can do the sorting
-    contacts = list(sorted(contacts_uniq,
-                           key=(lambda x: contact_format(x).lower())))
+    if not args.sort_names:
+        contacts = list(sorted(contacts_uniq,
+                               key=(lambda x: (x.mail.lower(), x.name.lower(),
+                                               x.description.lower()))))
+    else:
+        contacts = list(sorted(contacts_uniq,
+                               key=(lambda x: (x.name.lower(), x.mail.lower(),
+                                               x.description.lower()))))
 
     if args.starting_matches and pattern:
         sortfunc = get_sortfunc(pattern, contact_format)
