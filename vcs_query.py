@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
-# TODO
-# documentation
+# TODO: modules documentation
 
-# http://www.ietf.org/rfc/rfc2426.txt
-import vobject, sys, os
 import collections
 import argparse
 import hashlib
+import logging
 import pickle
+import sys
+import os
 import re
 
-import logging
-vobject_logger = logging.getLogger("vobject.base")
-logger = logging.getLogger(__name__)
+# http://www.ietf.org/rfc/rfc2426.txt
+import vobject
+
+VOBJECT_LOGGER = logging.getLogger("vobject.base")
+LOGGER = logging.getLogger(__name__)
 
 def main(argv):
     optparser = argparse.ArgumentParser(prog=argv[0],
@@ -124,22 +126,26 @@ class VcardCache(object):
 
     def _load(self):
         if os.path.isfile(self.pickle_path):
-            with open(self.pickle_path, "rb") as f:
-                return pickle.load(f)
+            with open(self.pickle_path, "rb") as cache:
+                return pickle.load(cache)
         else:
             return 0, {}
 
     def _update(self):
         if get_timestamp(self.vcard_dir) > self.last_vcard_dir_timestamp:
             paths = os.listdir(self.vcard_dir)
-            paths = [ os.path.join(self.vcard_dir, p) for p in paths ]
-            paths = [ p for p in paths if os.path.isfile(p) ]
+            paths = [os.path.join(self.vcard_dir, p) for p in paths]
+            paths = [p for p in paths if os.path.isfile(p)]
+
             for key in self.vcard_files.keys():
                 if key not in paths:
                     del self.vcard_files[key]
+
             for path in paths:
-                if path not in self.vcard_files or self.vcard_files[path].needs_update():
+                if path not in self.vcard_files                                \
+                   or self.vcard_files[path].needs_update():
                     self.vcard_files[path] = VcardFile(path)
+
         self.vcards = []
         for vcard_file in self.vcard_files.values():
             self.vcards.extend(vcard_file.vcards)
@@ -148,8 +154,9 @@ class VcardCache(object):
         try:
             if not os.path.isdir(self.cache_dir):
                 os.mkdir(self.cache_dir)
-            with open(self.pickle_path, "wb") as f:
-                pickle.dump((self.last_vcard_dir_timestamp, self.vcard_files), f)
+            with open(self.pickle_path, "wb") as cache:
+                pickle.dump((self.last_vcard_dir_timestamp, self.vcard_files),
+                            cache)
         except IOError:
             print("cannot write to cache file {!s}".format(self.pickle_path))
 
@@ -167,7 +174,8 @@ class Vcard(object):
         if "email" in component.contents:
             self.mails = [mail.value for mail in component.contents["email"]]
 
-        self.description = "" # TODO?
+        # TODO: any filed in a VCard that we could use for the description?
+        self.description = ""
 
     def _get_mail_contact(self, mail):
         return Vcard.Contact(str(mail), str(self.name), str(self.description))
@@ -189,22 +197,23 @@ class VcardFile(object):
         self._read_components(path)
 
     def _read_components(self, path):
-        vobject_logger.setLevel(logging.FATAL)
+        VOBJECT_LOGGER.setLevel(logging.FATAL)
+
         # FIXME: can we at least guess what charset the file has?
-        with open(path, encoding="utf-8") as f:
-            components = vobject.readComponents(f, ignoreUnreadable=True)
+        with open(path, encoding="utf-8") as vcfile:
+            components = vobject.readComponents(vcfile, ignoreUnreadable=True)
             self.vcards = []
             for component in components:
                 if component.name.lower() == "vcard":
-                    self.vcards.append( Vcard(component) )
+                    self.vcards.append(Vcard(component))
                 # hack to parse full emails for contained vcards:
                 elif "vcard" in component.contents:
-                    self.vcards.append( Vcard(component.vcard) )
+                    self.vcards.append(Vcard(component.vcard))
                 else:
-                    logger.warning("no vcard in component: %s from file %s",
+                    LOGGER.warning("no vcard in component: %s from file %s",
                                    component.name, path)
 
-        vobject_logger.setLevel(logging.ERROR)
+        VOBJECT_LOGGER.setLevel(logging.ERROR)
 
     def needs_update(self):
         return get_timestamp(self.path) > self.timestamp
