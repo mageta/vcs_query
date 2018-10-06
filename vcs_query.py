@@ -7,7 +7,6 @@
 # http://www.ietf.org/rfc/rfc2426.txt
 import vobject, sys, os
 import collections
-import functools
 import argparse
 import hashlib
 import re
@@ -33,9 +32,6 @@ def main(argv):
                            required=True, action='append',
                            help="specify directory containing VCards (can be "
                                 "given multiple times)")
-    optparser.add_argument("-s", "--starting-matches",
-                           required=False, action="store_true",
-                           help="display lines which start with PATTERN first")
     optparser.add_argument("-a", "--all-addresses",
                            required=False, action="store_true",
                            help="display all addresses stored for a contact")
@@ -77,9 +73,6 @@ def main(argv):
                 else:
                     contacts_uniq.add(vcard[0])
 
-    contact_format = (lambda x: "{}\t{}\t{}".format(x.mail, x.name,
-                                                    x.description))
-
     # Convert set into list, so we can do the sorting
     if not args.sort_names:
         contacts = list(sorted(contacts_uniq,
@@ -90,31 +83,12 @@ def main(argv):
                                key=(lambda x: (x.name.lower(), x.mail.lower(),
                                                x.description.lower()))))
 
-    if args.starting_matches and pattern:
-        sortfunc = get_sortfunc(pattern, contact_format)
-        keyfunc = functools.cmp_to_key(sortfunc)
-        contacts.sort(key=keyfunc)
-
     for contact in contacts:
-        contact_formatted = contact_format(contact)
+        contact_formatted = "{}\t{}\t{}".format(contact.mail, contact.name,
+                                                contact.description)
 
         if pattern.search(contact_formatted):
             print(contact_formatted)
-
-def get_sortfunc(pattern, fmt):
-    def sortfunc(a,b):
-        if pattern.match(fmt(a)):
-            if pattern.match(fmt(b)):
-                return 0
-            else:
-                return -1
-        else:
-            if pattern.match(fmt(b)):
-                return 1
-            else:
-                return 0
-
-    return sortfunc
 
 class Pattern(object):
     def __init__(self, pattern, is_regex):
@@ -127,9 +101,6 @@ class Pattern(object):
             else:
                 self.pattern = pattern.lower()
 
-    def __bool__(self):
-        return self.match_all
-
     def search(self, string):
         if self.match_all:
             return True
@@ -137,17 +108,6 @@ class Pattern(object):
         if self.is_regex and self.pattern.search(string):
             return True
         elif not self.is_regex and self.pattern in string.lower():
-            return True
-
-        return False
-
-    def match(self, string):
-        if self.match_all:
-            return True
-
-        if self.is_regex and self.pattern.match(string):
-            return True
-        elif not self.is_regex and string.lower().startswith(self.pattern):
             return True
 
         return False
