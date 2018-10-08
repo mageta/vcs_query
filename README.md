@@ -61,7 +61,7 @@ vcs_query.py CLI synopsis
 -------------------------
 
 ```
-usage: vcs_query.py [-h] -d VCARD_DIR [-a] [-n] [-r] [PATTERN]
+usage: vcs_query.py [-h] [--version] -d VCARD_DIR [-a] [-n] [-r] [PATTERN]
 
 Query VCard Files for EMail Addresses
 
@@ -70,6 +70,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --version             show program's version number and exit
   -d VCARD_DIR, --vcard-dir VCARD_DIR
                         specify directory containing VCards (can be given
                         multiple times)

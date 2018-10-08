@@ -26,6 +26,13 @@ except ImportError:
 VOBJECT_LOGGER = logging.getLogger("vobject.base")
 LOGGER = logging.getLogger(__name__)
 
+Version = collections.namedtuple("Version", ["major", "minor", "patch"])
+VERSION = Version(
+    major=0,
+    minor=2,
+    patch=0,
+)
+
 def main(argv):
     optparser = argparse.ArgumentParser(prog=argv[0],
                                         description="Query VCard Files for "
@@ -34,6 +41,11 @@ def main(argv):
                            nargs='?', default=None,
                            help="only those lines that contain PATTERN will be"
                                 "displayed")
+    optparser.add_argument("--version",
+                           action="version",
+                           version="%(prog)s version "
+                                   "{v.major:d}.{v.minor:d}.{v.patch:d}".format(
+                                       v=VERSION))
     optparser.add_argument("-d", "--vcard-dir",
                            required=True, action='append',
                            help="specify directory containing VCards (can be "
