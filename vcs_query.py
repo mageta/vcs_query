@@ -91,15 +91,15 @@ def main(argv):
                 else:
                     contacts_uniq.add(vcard[0])
 
-    # Convert set into list, so we can do the sorting
+    # sort the found contacts according to the given command-line options
     if not args.sort_names:
-        contacts = list(sorted(contacts_uniq,
-                               key=(lambda x: (x.mail.lower(), x.name.lower(),
-                                               x.description.lower()))))
+        contacts = sorted(contacts_uniq,
+                          key=(lambda x: (x.mail.lower(), x.name.lower(),
+                                          x.description.lower())))
     else:
-        contacts = list(sorted(contacts_uniq,
-                               key=(lambda x: (x.name.lower(), x.mail.lower(),
-                                               x.description.lower()))))
+        contacts = sorted(contacts_uniq,
+                          key=(lambda x: (x.name.lower(), x.mail.lower(),
+                                          x.description.lower())))
 
     for contact in contacts:
         contact_formatted = "{}\t{}\t{}".format(contact.mail, contact.name,
