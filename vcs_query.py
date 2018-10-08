@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+# This file is part of vcs_query - https://github.com/mageta/vcs_query
+# SPDX-License-Identifier: MIT
+# See file LICENSE for more information.
+
 # TODO: modules documentation
 
 import collections
