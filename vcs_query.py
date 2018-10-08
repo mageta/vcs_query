@@ -59,7 +59,7 @@ def main(argv):
         optparser.error("Given PATTERN is not a valid regular "
                         "expression ({})".format(error.msg))
 
-    print("vcs_query.py, see http://github.com/marvinthepa/vcs_query")
+    print("vcs_query.py, see https://github.com/mageta/vcs_query")
 
     # Load all contacts from the given VCard-Directories; duplicates are
     # automatically handled by using a set
