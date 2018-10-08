@@ -188,7 +188,7 @@ class Vcard(object):
 
     def __init__(self, component):
         self.name = ""
-        self.mails = ""
+        self.mails = []
         if "fn" in component.contents:
             self.name = component.fn.value
         if "email" in component.contents:
