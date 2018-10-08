@@ -188,14 +188,18 @@ class Vcard(object):
 
     def __init__(self, component):
         self.name = ""
-        self.mails = []
         if "fn" in component.contents:
             self.name = component.fn.value
+
+        self.mails = []
         if "email" in component.contents:
             self.mails = [mail.value for mail in component.contents["email"]]
 
-        # TODO: any filed in a VCard that we could use for the description?
         self.description = ""
+        if "note" in component.contents:
+            self.description = "; ".join([
+                line for line in component.note.value.splitlines() if line
+            ])
 
     def _get_mail_contact(self, mail):
         return Vcard.Contact(str(mail), str(self.name), str(self.description))

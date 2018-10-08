@@ -82,6 +82,37 @@ optional arguments:
                         expression-syntax)
 ```
 
+Output Format
+-------------
+
+The output will be formatted like this:
+
+```
+vcs_query.py, see https://github.com/mageta/vcs_query
+<eMail-Adr #1>\t<Name #1>\t<Description #1>
+<eMail-Adr #2>\t<Name #2>\t<Description #2>
+....
+<eMail-Adr #N>\t<Name #N>\t<Description #N>
+```
+
+The mapping between the VCard specification ([RFC
+2426](https://www.ietf.org/rfc/rfc2426.txt)) and the output fields is as
+follows:
+
+| Output-Field | VCard Type |
+|--------------|------------|
+| eMail-Adr    | EMAIL      |
+| Name         | FN         |
+| Description  | NOTE       |
+
+Each line in the output will always only contain a single eMail-Address
+(this is a requirement by mutt). If multiple eMails are stored in a single
+VCard, the option `-a`/`--all-addresses` can be used to print a line for each
+stored eMail (Name and Description will be the same in each of those lines).
+
+Because mutt requires exactly one line per contact, we mangle the NOTE type
+of the VCard so that the Description field will not contain any line breaks.
+
 Credits
 -------
 
