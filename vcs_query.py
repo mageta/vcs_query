@@ -77,10 +77,7 @@ def main(argv):
     # automatically handled by using a set
     contacts_uniq = set()
     for vcdir in args.vcard_dir:
-        cache = VcardCache(vcdir)
-        vcards = cache.get_entries()
-
-        for vcard in vcards:
+        for vcard in VcardCache(vcdir).vcards:
             if vcard:
                 if args.all_addresses:
                     contacts_uniq.update(vcard)
@@ -162,10 +159,6 @@ class VcardCache(object):
                    or self.vcard_files[path].needs_update():
                     self.vcard_files[path] = VcardFile(path)
 
-        self.vcards = []
-        for vcard_file in self.vcard_files.values():
-            self.vcards.extend(vcard_file.vcards)
-
     def _serialize(self):
         try:
             if not os.path.isdir(self.cache_dir):
@@ -176,8 +169,11 @@ class VcardCache(object):
         except IOError:
             print("cannot write to cache file {!s}".format(self.pickle_path))
 
-    def get_entries(self):
-        return self.vcards
+    @property
+    def vcards(self):
+        for vcards in self.vcard_files.values():
+            for vcard in vcards.vcards:
+                yield vcard
 
 class Vcard(object):
     Contact = collections.namedtuple("Contact", ["mail", "name", "description"])
