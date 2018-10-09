@@ -25,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 Version = collections.namedtuple("Version", ["major", "minor", "patch"])
 VERSION = Version(
     major=0,
-    minor=2,
+    minor=3,
     patch=0,
 )
 
