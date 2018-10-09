@@ -166,7 +166,7 @@ class VcardCache(object):
             with open(self.pickle_path, "wb") as cache:
                 pickle.dump((self.last_vcard_dir_timestamp, self.vcard_files),
                             cache)
-        except IOError:
+        except OSError:
             print("cannot write to cache file {!s}".format(self.pickle_path))
 
     @property
