@@ -133,16 +133,43 @@ class VcardCache(object):
         self.pickle_path = os.path.join(self.cache_dir,
                                         "{}.vcs_query".format(dhsh.hexdigest()))
 
-        self.last_vcard_dir_timestamp, self.vcard_files = self._load()
+        self.last_vcard_dir_timestamp = 0
+        self.vcard_files = {}
+
+        self._state = self._load()
         self._update()
         self._serialize()
 
+    _cache_version = 1
+
+    @property
+    def _default_state(self):
+        return (VcardCache._cache_version, 0, {})
+
+    @property
+    def _state(self):
+        return (VcardCache._cache_version,
+                self.last_vcard_dir_timestamp, self.vcard_files)
+
+    @_state.setter
+    def _state(self, value):
+        self.last_vcard_dir_timestamp = value[1]
+        self.vcard_files = value[2]
+
     def _load(self):
-        if os.path.isfile(self.pickle_path):
+        try:
             with open(self.pickle_path, "rb") as cache:
-                return pickle.load(cache)
-        else:
-            return 0, {}
+                obj = pickle.load(cache)
+
+                # prune invalid or outdated cache-files
+                if not isinstance(obj, tuple) or len(obj) < 3:
+                    raise RuntimeError("Invalid type")
+                elif obj[0] != VcardCache._cache_version:
+                    raise RuntimeError("Invalid Version ({})".format(obj[0]))
+
+                return obj
+        except (OSError, RuntimeError, pickle.UnpicklingError):
+            return self._default_state
 
     def _update(self):
         if get_timestamp(self.vcard_dir) > self.last_vcard_dir_timestamp:
@@ -164,8 +191,7 @@ class VcardCache(object):
             if not os.path.isdir(self.cache_dir):
                 os.mkdir(self.cache_dir)
             with open(self.pickle_path, "wb") as cache:
-                pickle.dump((self.last_vcard_dir_timestamp, self.vcard_files),
-                            cache)
+                pickle.dump(self._state, cache)
         except OSError:
             print("cannot write to cache file {!s}".format(self.pickle_path))
 
