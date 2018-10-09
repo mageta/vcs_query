@@ -129,13 +129,13 @@ class Pattern(object):
 class VcardCache(object):
     def __init__(self, vcard_dir):
         self.cache_dir = os.path.expanduser("~/.cache/")
+        self.vcard_dir = os.path.normcase(os.path.normpath(vcard_dir))
 
         dhsh = hashlib.sha256()
-        dhsh.update(vcard_dir.encode())
+        dhsh.update(self.vcard_dir.encode())
         self.pickle_path = os.path.join(self.cache_dir,
                                         "{}.vcs_query".format(dhsh.hexdigest()))
 
-        self.vcard_dir = vcard_dir
         self.last_vcard_dir_timestamp, self.vcard_files = self._load()
         self._update()
         self._serialize()
