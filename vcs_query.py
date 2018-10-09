@@ -11,17 +11,13 @@ import collections
 import argparse
 import hashlib
 import logging
+import pickle
 import sys
 import os
 import re
 
 # http://www.ietf.org/rfc/rfc2426.txt
 import vobject
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 VOBJECT_LOGGER = logging.getLogger("vobject.base")
 LOGGER = logging.getLogger(__name__)
