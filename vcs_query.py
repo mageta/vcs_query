@@ -240,6 +240,7 @@ class VcardFile(object):
     def __init__(self, path):
         self.path = path
         self.timestamp = get_timestamp(path)
+        self.vcards = []
         self._read_components(path)
 
     def _read_components(self, path):
@@ -248,7 +249,6 @@ class VcardFile(object):
         # FIXME: can we at least guess what charset the file has?
         with open(path, encoding="utf-8") as vcfile:
             components = vobject.readComponents(vcfile, ignoreUnreadable=True)
-            self.vcards = []
             for component in components:
                 if component.name.lower() == "vcard":
                     self.vcards.append(Vcard(component))
