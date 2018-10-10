@@ -168,7 +168,10 @@ class VcardCache(object):
                     raise RuntimeError("Invalid Version ({})".format(obj[0]))
 
                 return obj
-        except (OSError, RuntimeError, pickle.UnpicklingError):
+        except (OSError, RuntimeError, pickle.UnpicklingError) as error:
+            if not isinstance(error, OSError) or error.errno != 2:
+                LOGGER.warning("Cache file (%s) could not be read: %s",
+                               self.pickle_path, error)
             return self._default_state
 
     def _update(self):
@@ -193,7 +196,7 @@ class VcardCache(object):
             with open(self.pickle_path, "wb") as cache:
                 pickle.dump(self._state, cache)
         except OSError:
-            print("cannot write to cache file {!s}".format(self.pickle_path))
+            LOGGER.warning("Cannot write to cache file: %s", self.pickle_path)
 
     @property
     def vcards(self):
@@ -252,7 +255,7 @@ class VcardFile(object):
                 elif "vcard" in component.contents:
                     self.vcards.append(Vcard(component.vcard))
                 else:
-                    LOGGER.warning("no vcard in component: %s from file %s",
+                    LOGGER.warning("No VCard in component: '%s' from file '%s'",
                                    component.name, path)
 
         VOBJECT_LOGGER.setLevel(logging.ERROR)
