@@ -197,8 +197,8 @@ class VcardCache(object):
 
     @property
     def vcards(self):
-        for vcards in self.vcard_files.values():
-            for vcard in vcards.vcards:
+        for vcard_file in self.vcard_files.values():
+            for vcard in vcard_file.vcards:
                 yield vcard
 
 class Vcard(object):
