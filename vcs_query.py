@@ -168,7 +168,8 @@ class VcardCache(object):
                     raise RuntimeError("Invalid Version ({})".format(obj[0]))
 
                 return obj
-        except (OSError, RuntimeError, pickle.UnpicklingError) as error:
+        except (OSError, RuntimeError, AttributeError, EOFError, ImportError,
+                IndexError, pickle.UnpicklingError) as error:
             if not isinstance(error, OSError) or error.errno != 2:
                 LOGGER.warning("Cache file (%s) could not be read: %s",
                                self.pickle_path, error)
