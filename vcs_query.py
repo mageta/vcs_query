@@ -176,7 +176,10 @@ class VcardCache(object):
             return self._default_state
 
     def _update(self):
-        if get_timestamp(self.vcard_dir) > self.last_vcard_dir_timestamp:
+        vcard_dir_timestamp = get_timestamp(self.vcard_dir)
+        if vcard_dir_timestamp > self.last_vcard_dir_timestamp:
+            self.last_vcard_dir_timestamp = vcard_dir_timestamp
+
             paths = os.listdir(self.vcard_dir)
             paths = [os.path.join(self.vcard_dir, p) for p in paths]
             paths = [p for p in paths if os.path.isfile(p)]
