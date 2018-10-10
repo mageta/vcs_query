@@ -77,12 +77,15 @@ def main(argv):
     # automatically handled by using a set
     contacts_uniq = set()
     for vcdir in args.vcard_dir:
-        for vcard in VcardCache(vcdir).vcards:
-            if vcard:
-                if args.all_addresses:
-                    contacts_uniq.update(vcard)
-                else:
-                    contacts_uniq.add(vcard[0])
+        try:
+            for vcard in VcardCache(vcdir).vcards:
+                if vcard:
+                    if args.all_addresses:
+                        contacts_uniq.update(vcard)
+                    else:
+                        contacts_uniq.add(vcard[0])
+        except OSError as error:
+            LOGGER.error("Error while reading VCard Dir: %s: %s", vcdir, error)
 
     # sort the found contacts according to the given command-line options
     if not args.sort_names:
@@ -180,18 +183,35 @@ class VcardCache(object):
         if vcard_dir_timestamp > self.last_vcard_dir_timestamp:
             self.last_vcard_dir_timestamp = vcard_dir_timestamp
 
-            paths = os.listdir(self.vcard_dir)
-            paths = [os.path.join(self.vcard_dir, p) for p in paths]
-            paths = [p for p in paths if os.path.isfile(p)]
+            paths = set()
+            # let erros in os.scandir() bubble up.. the whole thing failed
+            with os.scandir(self.vcard_dir) as directory:
+                for node in directory:
+                    try:
+                        path = os.path.abspath(node.path)
+                        if node.is_file():
+                            paths.add(path)
+                    except OSError as err:
+                        LOGGER.error("Error reading VCard: %s: %s", node, err)
 
-            for key in self.vcard_files.keys():
-                if key not in paths:
-                    del self.vcard_files[key]
+            # prune VCards that don't exist anymore
+            for path in self.vcard_files.keys():
+                if path not in paths:
+                    del self.vcard_files[path]
 
+            # add or update VCards
             for path in paths:
-                if path not in self.vcard_files                                \
-                   or self.vcard_files[path].needs_update():
-                    self.vcard_files[path] = VcardFile(path)
+                vcard = self.vcard_files.get(path)
+                if not vcard or vcard.needs_update():
+                    try:
+                        vcard = VcardFile(path)
+                        self.vcard_files[path] = vcard
+                    except OSError as err:
+                        LOGGER.error("Error reading VCard: %s: %s", path, err)
+                        try:
+                            del self.vcard_files[path]
+                        except KeyError:
+                            pass
 
     def _serialize(self):
         try:
@@ -250,6 +270,7 @@ class VcardFile(object):
         VOBJECT_LOGGER.setLevel(logging.FATAL)
 
         # FIXME: can we at least guess what charset the file has?
+        # let errors from file-IO bubble up, this whole VCard is failed
         with open(path, encoding="utf-8") as vcfile:
             components = vobject.readComponents(vcfile, ignoreUnreadable=True)
             for component in components:
