@@ -69,7 +69,7 @@ def main(argv):
         pattern = Pattern(args.pattern, args.regex)
     except re.error as error:
         optparser.error("Given PATTERN is not a valid regular "
-                        "expression ({})".format(error.msg))
+                        "expression: {!s}".format(error))
 
     print("vcs_query.py, see https://github.com/mageta/vcs_query")
 
