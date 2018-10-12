@@ -47,15 +47,20 @@ Mutt Configuration
 ------------------
 
 To use `vcs_query.py`, instead of the aliases defined in your `.muttrc`, put
-this in your `.muttrc`:
+something like this in your `.muttrc`:
 
 ```
 set query_command="vcs_query.py -d ~/.local/share/contacts -a -n %s"
 ```
 
+For more options, or what these options mean, run `vcs_query.py --help`, or
+look below into the synopsis.
+
 Here is the corresponding documentation of the mutt-project:
 [documentation](http://www.mutt.org/doc/manual/#query), [configuration
-reference](http://www.mutt.org/doc/manual/#query-command).
+reference](http://www.mutt.org/doc/manual/#query-command). More tools like this
+one can be found in the mutt wiki:
+[here](https://gitlab.com/muttmua/mutt/wikis/QueryCommand).
 
 vcs_query.py CLI synopsis
 -------------------------
