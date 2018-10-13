@@ -6,7 +6,7 @@ query-command to use vcards in mutt
 What does it do?
 ----------------
 
-This scripts parses all VCards in the directory given with `-d`
+This scripts parses all vCards in the directory given with `-d`
 and prints them in a format that is usable as `$query-command` in mutt.
 
 The first non-option argument is interpreted as a pattern to filter the
@@ -68,7 +68,7 @@ vcs_query.py CLI synopsis
 ```
 usage: vcs_query.py [-h] [--version] -d VCARD_DIR [-a] [-n] [-r] [PATTERN]
 
-Query VCard Files for EMail Addresses
+Query vCard Files for EMail Addresses
 
 positional arguments:
   PATTERN               only those lines that contain PATTERN will bedisplayed
@@ -77,7 +77,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -d VCARD_DIR, --vcard-dir VCARD_DIR
-                        specify directory containing VCards (can be given
+                        specify directory containing vCards (can be given
                         multiple times)
   -a, --all-addresses   display all addresses stored for a contact
   -n, --sort-names      sort the result according to the contact name (the
@@ -100,11 +100,11 @@ vcs_query.py, see https://github.com/mageta/vcs_query
 <eMail-Adr #N>\t<Name #N>\t<Description #N>
 ```
 
-The mapping between the VCard specification ([RFC
+The mapping between the vCard specification ([RFC
 6350](https://tools.ietf.org/html/rfc6350)) and the output fields is as
 follows:
 
-| Output-Field | VCard Type |
+| Output-Field | vCard Type |
 |--------------|------------|
 | eMail-Adr    | EMAIL      |
 | Name         | FN         |
@@ -112,11 +112,11 @@ follows:
 
 Each line in the output will always only contain a single eMail-Address
 (this is a requirement by mutt). If multiple eMails are stored in a single
-VCard, the option `-a`/`--all-addresses` can be used to print a line for each
+vCard, the option `-a`/`--all-addresses` can be used to print a line for each
 stored eMail (Name and Description will be the same in each of those lines).
 
 Because mutt requires exactly one line per contact, we mangle the NOTE type
-of the VCard so that the Description field will not contain any line breaks.
+of the vCard so that the Description field will not contain any line breaks.
 
 Limitations
 -----------

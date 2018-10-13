@@ -33,7 +33,7 @@ VERSION = Version(
 
 def main(argv):
     optparser = argparse.ArgumentParser(prog=argv[0],
-                                        description="Query VCard Files for "
+                                        description="Query vCard Files for "
                                                     "EMail Addresses")
     optparser.add_argument("pattern", metavar="PATTERN",
                            nargs='?', default=None,
@@ -46,7 +46,7 @@ def main(argv):
                                        v=VERSION))
     optparser.add_argument("-d", "--vcard-dir",
                            required=True, action='append',
-                           help="specify directory containing VCards (can be "
+                           help="specify directory containing vCards (can be "
                                 "given multiple times)")
     optparser.add_argument("-a", "--all-addresses",
                            required=False, action="store_true",
@@ -75,7 +75,7 @@ def main(argv):
 
     print("vcs_query.py, see https://github.com/mageta/vcs_query")
 
-    # Load all contacts from the given VCard-Directories; duplicates are
+    # Load all contacts from the given vCard-Directories; duplicates are
     # automatically handled by using a set
     contacts_uniq = set()
     for vcdir in args.vcard_dir:
@@ -87,7 +87,7 @@ def main(argv):
                     else:
                         contacts_uniq.add(vcard[0])
         except OSError as error:
-            LOGGER.error("Error while reading VCard Dir: %s: %s", vcdir, error)
+            LOGGER.error("Error while reading vCard Dir: %s: %s", vcdir, error)
 
     # sort the found contacts according to the given command-line options
     if not args.sort_names:
@@ -194,14 +194,14 @@ class VcardCache(object):
                         if node.is_file():
                             paths.add(path)
                     except OSError as err:
-                        LOGGER.error("Error reading VCard: %s: %s", node, err)
+                        LOGGER.error("Error reading vCard: %s: %s", node, err)
 
-            # prune VCards that don't exist anymore
+            # prune vCards that don't exist anymore
             for path in self.vcard_files.keys():
                 if path not in paths:
                     del self.vcard_files[path]
 
-            # add or update VCards
+            # add or update vCards
             for path in paths:
                 vcard = self.vcard_files.get(path)
                 if not vcard or vcard.needs_update():
@@ -209,7 +209,7 @@ class VcardCache(object):
                         vcard = VcardFile(path)
                         self.vcard_files[path] = vcard
                     except OSError as err:
-                        LOGGER.error("Error reading VCard: %s: %s", path, err)
+                        LOGGER.error("Error reading vCard: %s: %s", path, err)
                         try:
                             del self.vcard_files[path]
                         except KeyError:
