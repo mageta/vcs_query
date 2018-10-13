@@ -16,10 +16,12 @@ import sys
 import os
 import re
 
-# http://www.ietf.org/rfc/rfc2426.txt
-import vobject
+# vCard Standards:
+#   3.0 https://tools.ietf.org/html/rfc2426
+#   4.0 https://tools.ietf.org/html/rfc6350
+from vobject        import readComponents   as VObjectRead
+from vobject.base   import VObjectError
 
-VOBJECT_LOGGER = logging.getLogger("vobject.base")
 LOGGER = logging.getLogger(__name__)
 
 Version = collections.namedtuple("Version", ["major", "minor", "patch"])
@@ -232,14 +234,20 @@ class Vcard(object):
     Contact = collections.namedtuple("Contact", ["mail", "name", "description"])
 
     def __init__(self, component):
+        # Property FN
+        #   https://tools.ietf.org/html/rfc6350#section-6.2.1
         self.name = ""
         if "fn" in component.contents:
             self.name = component.fn.value
 
+        # Property EMAIL
+        #   https://tools.ietf.org/html/rfc6350#section-6.4.2
         self.mails = []
         if "email" in component.contents:
             self.mails = [mail.value for mail in component.contents["email"]]
 
+        # Property NOTE
+        #   https://tools.ietf.org/html/rfc6350#section-6.7.2
         self.description = ""
         if "note" in component.contents:
             self.description = "; ".join([
@@ -260,6 +268,8 @@ class Vcard(object):
         return len(self.mails)
 
 class VcardFile(object):
+    vobject_logger = logging.getLogger("vobject.base")
+
     def __init__(self, path):
         self.path = path
         self.timestamp = get_timestamp(path)
@@ -267,26 +277,41 @@ class VcardFile(object):
         self._read_components(path)
 
     def _read_components(self, path):
-        VOBJECT_LOGGER.setLevel(logging.FATAL)
-
-        # FIXME: can we at least guess what charset the file has?
-        # let errors from file-IO bubble up, this whole VCard is failed
-        with open(path, encoding="utf-8") as vcfile:
-            components = vobject.readComponents(vcfile, ignoreUnreadable=True)
-            for component in components:
-                if component.name.lower() == "vcard":
-                    self.vcards.append(Vcard(component))
-                # hack to parse full emails for contained vcards:
-                elif "vcard" in component.contents:
-                    self.vcards.append(Vcard(component.vcard))
-                else:
-                    LOGGER.warning("No VCard in component: '%s' from file '%s'",
-                                   component.name, path)
-
-        VOBJECT_LOGGER.setLevel(logging.ERROR)
+        # As per https://tools.ietf.org/html/rfc6350#section-3.1
+        # the charset for a vCard MUST be UTF-8
+        try:
+            # let errors from FILE-I/O bubble up, this whole vCard is failed
+            with open(path, encoding="utf-8", errors="strict") as vcfile:
+                for component in VObjectRead(vcfile, ignoreUnreadable=True):
+                    if component.name.lower() == "vcard":
+                        # Normal Case: vCard is the top property:
+                        #   https://tools.ietf.org/html/rfc6350#section-6.1.1
+                        self.vcards += [Vcard(component)]
+                    elif "vcard" in component.contents:
+                        # Special case from RFC2426; in that version it was
+                        # possible to nest vCards:
+                        #   https://tools.ietf.org/html/rfc2426#section-2.4.2
+                        # This has since been removed:
+                        #   https://tools.ietf.org/html/rfc6350#appendix-A.2
+                        # But we keep the code as it is rather simple and it
+                        # provides backwards-compatibility
+                        self.vcards += [Vcard(component.vcard)]
+                    else:
+                        LOGGER.warning("No vCard in a component in: %s", path)
+        except VObjectError as error:
+            LOGGER.error("Parser Error in file: %s: %s", path, error)
+        except ValueError as error:
+            LOGGER.error("Bad Encoding in file: %s: %s", path, error)
 
     def needs_update(self):
         return get_timestamp(self.path) > self.timestamp
+
+# vobject regularly complains about unparsable streams and such, but as we
+# don't really know which files should be vcards and which not, in the
+# directory we are given, this is a bit much, and will only concern users, so
+# we just ignore most warnings (there are exception, like when we found
+# something that looks like a vCard but is not parsable after all).
+VcardFile.vobject_logger.setLevel(logging.ERROR + 1)
 
 def get_timestamp(path):
     return os.stat(path).st_mtime

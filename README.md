@@ -101,7 +101,7 @@ vcs_query.py, see https://github.com/mageta/vcs_query
 ```
 
 The mapping between the VCard specification ([RFC
-2426](https://www.ietf.org/rfc/rfc2426.txt)) and the output fields is as
+6350](https://tools.ietf.org/html/rfc6350)) and the output fields is as
 follows:
 
 | Output-Field | VCard Type |
@@ -117,6 +117,15 @@ stored eMail (Name and Description will be the same in each of those lines).
 
 Because mutt requires exactly one line per contact, we mangle the NOTE type
 of the VCard so that the Description field will not contain any line breaks.
+
+Limitations
+-----------
+
+Some know limitation either on the script, or on the provided data:
+
+* The vCards *MUST* be encoded in UTF-8. This is a limitation introduced by
+  the latest vCard RFC: <https://tools.ietf.org/html/rfc6350#section-3.1>; and
+  quite frankly, it makes the implementation easier.
 
 Credits
 -------
