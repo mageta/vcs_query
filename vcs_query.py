@@ -8,6 +8,7 @@
 # TODO: modules documentation
 
 import collections
+import email.utils
 import argparse
 import hashlib
 import logging
@@ -61,11 +62,22 @@ def main(argv):
                            help="interpret PATTERN as regular expression "
                                 "(syntax: https://docs.python.org/3/library/"
                                 "re.html#regular-expression-syntax)")
+    optparser.add_argument("-m", "--mode",
+                           required=False, type=str,
+                           choices=OutputFormat.available,
+                           default=OutputFormat.available[0],
+                           help="select output-mode (default: "
+                                "{})".format(OutputFormat.available[0]))
     args = optparser.parse_args(argv[1:])
 
     for vcdir in args.vcard_dir:
         if not os.path.isdir(vcdir):
             optparser.error("'{}' is not a directory".format(vcdir))
+
+    try:
+        output = OutputFormat(args.mode)
+    except LookupError as error:
+        optparser.error(error)
 
     try:
         pattern = Pattern(args.pattern, args.regex)
@@ -100,11 +112,31 @@ def main(argv):
                                           x.description.lower())))
 
     for contact in contacts:
-        contact_formatted = "{}\t{}\t{}".format(contact.mail, contact.name,
-                                                contact.description)
+        if pattern.search(output.format(contact)):
+            print(output.format_escape(contact))
 
-        if pattern.search(contact_formatted):
-            print(contact_formatted)
+class OutputFormat(object):
+    available = ("mutt", "vim")
+
+    def __init__(self, mode):
+        if mode not in OutputFormat.available:
+            raise LookupError("'{}' is not a supported "
+                              "output-mode".format(mode))
+
+        self.mode = mode
+
+    def format(self, contact):
+        if self.mode == "mutt":
+            return "{}\t{}\t{}".format(contact.mail, contact.name,
+                                       contact.description)
+        elif self.mode == "vim":
+            return "{} <{}>".format(contact.name, contact.mail)
+
+    def format_escape(self, contact):
+        if self.mode == "mutt":
+            return self.format(contact)
+        elif self.mode == "vim":
+            return email.utils.formataddr((contact.name, contact.mail))
 
 class Pattern(object):
     def __init__(self, pattern, is_regex):
