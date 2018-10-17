@@ -197,9 +197,15 @@ class VcardCache(object):
                         LOGGER.error("Error reading vCard: %s: %s", node, err)
 
             # prune vCards that don't exist anymore
+            removed = list()
             for path in self.vcard_files.keys():
                 if path not in paths:
-                    del self.vcard_files[path]
+                    # we can not delete items from self.vcard_files while we
+                    # iterate over it, so remember them instead
+                    removed += [path]
+
+            for path in removed:
+                del self.vcard_files[path]
 
             # add or update vCards
             for path in paths:
