@@ -28,8 +28,8 @@ LOGGER = logging.getLogger(__name__)
 Version = collections.namedtuple("Version", ["major", "minor", "patch"])
 VERSION = Version(
     major=0,
-    minor=3,
-    patch=2,
+    minor=4,
+    patch=0,
 )
 
 def main(argv):
